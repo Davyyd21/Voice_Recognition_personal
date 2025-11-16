@@ -1,225 +1,184 @@
-import warnings  #avertismente
-#warnings.filterwarnings("ignore")  # dezactiveaza avertistemte
-
-from command_matcher import load_commands, find_best_match
+import sounddevice as sd
+import numpy as np
+import queue
+import threading
+import time
 import subprocess
-
-import sounddevice as sd  #utilizare microfon
-import numpy as np         #array-uri audio
-import queue               #coada de seqmente audio
-import threading           #creaza threaduri intre inregistrare si transcribe
-import time                #pentru delay
-from faster_whisper import WhisperModel  #whisper mai rapid
-from collections import deque            #coada double-end
-
+from faster_whisper import WhisperModel
+from collections import deque
+from command_matcher import load_commands, find_best_match
 import os
-print("Current working dir:", os.getcwd())
-print("Commands file exists:", os.path.exists("commands.csv"))
+import sys
 
-# SETTINGS
-WAKE_WORD="garmin"
-SAMPLE_RATE=16000
-CHUNK_DURATION=0.5
-PAUSE_THRESHOLD=1.0         #limita de timp fara voce pentru sfarsit comanda
-MIN_COMMAND_DURATION=1.0
-DEVICE_INDEX=None
-WAKE_WORD_DELAY=1.5         # delay de la wake-word pana la comanda
+WAKE_WORD = "garmin"
+SAMPLE_RATE = 16000
+CHUNK_DURATION = 0.5
+PAUSE_THRESHOLD = 1.0
+MIN_COMMAND_DURATION = 1.0
+DEVICE_INDEX = None
+WAKE_WORD_DELAY = 1.2
+WAKE_DEBOUNCE = 2.0
 
+COMMANDS_CSV = "commands.csv"
 
-#BEEP
+audio_queue = queue.Queue()
+rolling_buffer = deque(maxlen=int(3 * SAMPLE_RATE))
+command_buffer = []
+recording = False
+wake_detected = False
+last_speech_time = time.time()
+command_start_delay = 0.0
+buffer_lock = threading.Lock()
+last_wake_time = 0
+
 def play_beep():
-    duration=0.2 #beep duration
-    t=np.linspace(0,duration,int(SAMPLE_RATE*duration),False) #vector de timp t cu puncte de esantionare
-    tone=0.3*np.sin(2*np.pi*1000*t)  # ton sinusoidal 1000 Hz
-    sd.play(tone,samplerate=SAMPLE_RATE)
-    sd.wait() #asteapta sa se termine audio-ul de redat
+    duration = 0.2
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), False)
+    tone = 0.3 * np.sin(2 * np.pi * 1000 * t)
+    sd.play(tone, samplerate=SAMPLE_RATE)
+    sd.wait()
 
+def is_speech(chunk, threshold=0.01):
+    return np.mean(np.abs(chunk)) > threshold
 
-#MODEL
-print("Loading whisper...")
-model=WhisperModel("tiny.en",device="cuda",compute_type="float16") ## device="cuda"/"cpu",compute_type="float16"/"int8" -pt gpu
+def reset_recording():
+    global command_buffer, wake_detected, recording
+    command_buffer = []
+    wake_detected = False
+    recording = False
 
+print("Loading Faster Whisper model...")
+try:
+    model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
+    print("Whisper model loaded successfully.")
+except Exception as e:
+    print("Error loading model:", e)
+    sys.exit(1)
 
-# Load commands from CSV
-commands = load_commands("commands.csv")
-print("Loaded commands:", commands)
+commands = load_commands(COMMANDS_CSV)
+if not commands:
+    print("No commands loaded. Exiting.")
+    sys.exit(1)
+else:
+    print(f"[LOADED] {len(commands)} commands from {COMMANDS_CSV}")
 
-#VARIABILE GLOBALE
-audio_queue=queue.Queue()  #Coada arrayuri
-rolling_buffer=deque(maxlen=int(3*SAMPLE_RATE))  #buffer audio - ultimele 3 secunde din audio
-command_buffer=[] #audio stocat pentru comanda vocala
-recording=False
-wake_detected=False #detectare cuvant activare
-last_speech_time=time.time() #ultima activitate
-command_start_delay=0.0   # timp dupa beep
-buffer_lock=threading.Lock() #lock pentru acces sincronizat la buffer
-
-
-#Voice Activity Detection
-def is_speech(chunk,threshold=0.01):
-    #daca un segment de voce contine audio -bazat pe amplitudine medie
-    return np.mean(np.abs(chunk))>threshold
-
-
-# WAKE WORD DETECTION
-def detect_wake_word():
-    #ruleaza pe ultimele 3 secunde din buffer(rolling buffer)
-    global wake_detected,recording,command_buffer,command_start_delay
-    if wake_detected or len(rolling_buffer)<SAMPLE_RATE:
-        return  #daca deja e activat sau bufferul e prea mic, return
-
-    audio=np.array(rolling_buffer,dtype=np.float32)
+def detect_wake_word(audio):
+    global wake_detected, recording, command_start_delay, last_wake_time
+    now = time.time()
+    if wake_detected or now - last_wake_time < WAKE_DEBOUNCE:
+        return
     try:
-        #transcrie ultimele secunde din buffer
-        segments,_=model.transcribe(
-            audio,language="en",beam_size=1,word_timestamps=True,temperature=0.0
+        segments, _ = model.transcribe(
+            np.array(audio, dtype=np.float32),
+            language="en",
+            beam_size=1,
+            vad_filter=True
         )
-        text = " ".join(s.text for s in segments).lower()
-        #Cauta cuvântul de activare
+        text = " ".join([seg.text for seg in segments if hasattr(seg, "text")]).lower()
         if WAKE_WORD in text:
-            wake_detected=True
-            recording=True
-            #Salveaza ultima secunda de audio(ca să nu pierdem inceputul)
-            command_buffer=list(audio[-int(SAMPLE_RATE*1):])
-            command_start_delay=time.time()+WAKE_WORD_DELAY # pauza de 1.5s
-            print(f"[WAKE WORD DETECTED: {WAKE_WORD.upper()}]")
-            threading.Thread(target=play_beep,daemon=True).start()
-
-            #reseteaza bufferul si coada pentru a inregistra doar comanda
+            wake_detected = True
+            recording = True
+            command_start_delay = time.time() + WAKE_WORD_DELAY
+            command_buffer.extend(audio[-SAMPLE_RATE:])
+            last_wake_time = now
+            print(f"\n[WAKE WORD DETECTED: {WAKE_WORD.upper()}]")
+            threading.Thread(target=play_beep, daemon=True).start()
             with buffer_lock:
                 rolling_buffer.clear()
-            with audio_queue.mutex:  # sterge continutul cozii in siguranta
+            with audio_queue.mutex:
                 audio_queue.queue.clear()
-
     except Exception as e:
-        print("Wake error:", e)
+        print("Wake-word error:", e)
 
-
-# AUDIO CALLBACK
-def audio_callback(indata,frames,time_info,status):
-    #callback apelat de souddevice care este executata dupa ce este inregistrat un chunk
+def audio_callback(indata, frames, time_info, status):
     if status:
-        print("Audio status:",status) #erori
-    chunk=indata.copy().astype(np.float32).flatten()
+        print("Audio status:", status)
+    chunk = indata.copy().flatten().astype(np.float32)
     audio_queue.put(chunk)
 
-# WORKER THREAD
-def worker():
-    #Thread principal care detecteaza wake wrod si apoi il inregistreaza si da transcribe
-    global recording,last_speech_time,command_buffer,wake_detected,command_start_delay
-    print(f"Say {WAKE_WORD} to activate...\n")
-
-    while True:
-        chunk=audio_queue.get()
-        if chunk is None:
-            break
-        #adauga bucata curenta în bufferul circular
-        with buffer_lock:
-            rolling_buffer.extend(chunk)
-        #detecteaza cuvantul WAKE_WORD la fiecare 0.5 secunde
-        if not wake_detected and len(rolling_buffer)%int(SAMPLE_RATE * 0.5) < len(chunk):
-            threading.Thread(target=detect_wake_word,daemon=True).start() #daca nu a fost detectat wake word si avem chunckuri intregi este cautat wake work
-
-        #daca s a activat modul de ascultare pentru comanda
-        if wake_detected:
-            current_time=time.time()
-
-            #pauza de 1.5 secunde
-            if current_time<command_start_delay:
-                last_speech_time=current_time
-                command_buffer.extend(chunk)
-                continue
-
-            #procesare comanda
-            command_buffer.extend(chunk)
-            if is_speech(chunk):
-                last_speech_time=current_time
-            else:
-                #finalizare comanda la pauza mai mare de 1s
-                if current_time-last_speech_time>PAUSE_THRESHOLD:
-                    if len(command_buffer)>SAMPLE_RATE*MIN_COMMAND_DURATION:
-                        transcribe_command()
-                    command_buffer.clear()
-                    wake_detected = False
-                    recording = False
-
-            #daca comanda dureaza prea mult (>15 sec) o finalizează automat
-            if len(command_buffer)>SAMPLE_RATE*15:
-                transcribe_command()
-                command_buffer.clear()
-                wake_detected=False
-                recording=False
-
-# TRANSCRIBE COMMAND
 def transcribe_command():
-    #da transcribe la bufferul de comanda si afiseaza
     if not command_buffer:
         return
-    audio=np.array(command_buffer,dtype=np.float32)
+    audio = np.array(command_buffer, dtype=np.float32)
     print("Transcribing command...")
     try:
-        segments,_=model.transcribe(audio,language="en",beam_size=5,temperature=0.0)
-        text = " ".join(s.text for s in segments).strip().lower()
-
-        # elimina cuvantul de activare din textul final
-        text = text.replace(WAKE_WORD.lower(), "").strip()
-
-        # daca textul este gol dupa eliminare
+        segments, _ = model.transcribe(
+            audio,
+            language="en",
+            beam_size=3,
+            vad_filter=True
+        )
+        text = " ".join([seg.text for seg in segments if hasattr(seg, "text")]).lower()
+        text = text.replace(WAKE_WORD, "").strip()
         if not text:
-            print("Command empty")
+            print("Empty command")
+            reset_recording()
+            return
+        print(f"Command: '{text}'")
+        result = find_best_match(text, commands, cutoff=70)
+        if result:
+            key, action, score = result
+            print(f"[MATCH] '{key}' (score: {score:.1f}%)")
+            try:
+                subprocess.Popen(action, shell=True)
+            except Exception as e:
+                print("Execution error:", e)
         else:
-            print(f"Command: {text}")
-
-            result = find_best_match(text, commands)
-            if result:
-                matched_cmd, score = result
-                print(f"[MATCH] {matched_cmd} (score={score:.1f})")
-                execute_command(matched_cmd)
-            else:
-                print("No matching command found.")
-
-
+            print("No matching command found.")
     except Exception as e:
-        print("Error:", e)
+        print("Transcription error:", e)
+    reset_recording()
 
+def worker():
+    global last_speech_time
+    print(f"Say '{WAKE_WORD}' to activate the assistant...\n")
+    while True:
+        chunk = audio_queue.get()
+        if chunk is None:
+            break
+        with buffer_lock:
+            rolling_buffer.extend(chunk)
+        if not wake_detected and len(rolling_buffer) >= SAMPLE_RATE*0.5:
+            threading.Thread(target=detect_wake_word, args=(list(rolling_buffer),), daemon=True).start()
+        if wake_detected:
+            current_time = time.time()
+            if current_time < command_start_delay:
+                command_buffer.extend(chunk)
+                last_speech_time = current_time
+                continue
+            command_buffer.extend(chunk)
+            if is_speech(chunk):
+                last_speech_time = current_time
+            elif current_time - last_speech_time > PAUSE_THRESHOLD:
+                if len(command_buffer) > SAMPLE_RATE*MIN_COMMAND_DURATION:
+                    transcribe_command()
+                reset_recording()
+            if len(command_buffer) > SAMPLE_RATE*15:
+                transcribe_command()
+                reset_recording()
 
-def execute_command(cmd_key):
-    """Executa comanda corespunzătoare în Linux"""
+def main():
     try:
-        if cmd_key == "open_chrome":
-            subprocess.Popen(["google-chrome"])
-        elif cmd_key == "open_firefox":
-            subprocess.Popen(["firefox"])
-        elif cmd_key == "open_spotify":
-            subprocess.Popen(["spotify"])
-        elif cmd_key == "open_terminal":
-            subprocess.Popen(["gnome-terminal"])  # sau 'konsole', 'xterm', depinde de sistem
-        else:
-            print(f"No action defined for: {cmd_key}")
-    except Exception as e:
-        print("Execution error:", e)
-
-
-
-# MAIN
-#creaza stream audio
-stream = sd.InputStream(
-    samplerate=SAMPLE_RATE,
-    channels=1,
-    dtype='float32',
-    callback=audio_callback,
-    blocksize=int(CHUNK_DURATION*SAMPLE_RATE),
-    device=DEVICE_INDEX
-)
-print("Program started\n")
-
-#porneste thread procesare audio
-with stream:
-    t=threading.Thread(target=worker,daemon=True)
-    t.start()
-    try:
-        while True:
-            time.sleep(0.1)
+        stream = sd.InputStream(
+            samplerate=SAMPLE_RATE,
+            channels=1,
+            dtype='float32',
+            callback=audio_callback,
+            blocksize=int(CHUNK_DURATION * SAMPLE_RATE),
+            device=DEVICE_INDEX
+        )
+        with stream:
+            t = threading.Thread(target=worker, daemon=True)
+            t.start()
+            print("System active. Waiting for commands...\n")
+            while True:
+                time.sleep(0.1)
     except KeyboardInterrupt:
-        print("\nExiting..")
+        print("\nExiting...")
         audio_queue.put(None)
+    except Exception as e:
+        print("Stream error:", e)
+        audio_queue.put(None)
+
+if __name__ == "__main__":
+    main()
