@@ -51,10 +51,10 @@ def reset_recording():
 print("Loading Faster Whisper model...")
 try:
     print("Is cuda avalable: ",torch.cuda.is_available(),"version",torch.version.cuda)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    compute_type = "float16" if device == "cuda" else "int8"
-    print("Using device: ", device)
-    model = WhisperModel("tiny.en", device=device, compute_type=compute_type)
+    device_1 = "cuda" if torch.cuda.is_available() else "cpu"
+    compute_type_1 = "float16" if device_1 == "cuda" else "int8"
+    print("Using device: ", device_1)
+    model = WhisperModel("tiny.en", device=device_1, compute_type=compute_type_1)
 
     print("Whisper model loaded successfully.")
 except Exception as e:
