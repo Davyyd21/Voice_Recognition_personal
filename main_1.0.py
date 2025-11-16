@@ -9,6 +9,7 @@ from collections import deque
 from command_matcher import load_commands, find_best_match
 import os
 import sys
+import torch
 
 WAKE_WORD = "garmin"
 SAMPLE_RATE = 16000
@@ -49,7 +50,12 @@ def reset_recording():
 
 print("Loading Faster Whisper model...")
 try:
-    model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
+    print("Is cuda avalable: ",torch.cuda.is_available(),"version",torch.version.cuda)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    compute_type = "float16" if device == "cuda" else "int8"
+    print("Using device: ", device)
+    model = WhisperModel("tiny.en", device=device, compute_type=compute_type)
+
     print("Whisper model loaded successfully.")
 except Exception as e:
     print("Error loading model:", e)
