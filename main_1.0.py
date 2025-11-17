@@ -144,7 +144,7 @@ def transcribe_command():
     except Exception as e:
         print("Transcription error:", e)
     reset_recording()
-#adriangh.dina@gmail.com
+
 #worker-thread care integreaza si uneste toate functiile de transcribe
 def worker():
     global last_speech_time
