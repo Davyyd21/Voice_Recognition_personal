@@ -68,12 +68,12 @@ except Exception as e:
     sys.exit(1)
 
 #incarcare comenzi
-commands = load_commands(COMMANDS_CSV)
-if not commands:
-    print("No commands loaded. Exiting.")
+var2act, var_vec = load_commands(COMMANDS_CSV)
+if not var_vec:
+    print("No data loaded. Exiting.")
     sys.exit(1)
 else:
-    print(f"Loaded {len(commands)} commands from {COMMANDS_CSV}")
+    print(f"Loaded {len(var_vec)} variants from {COMMANDS_CSV}")
 
 #functie detectie wake word
 def detect_wake_word(audio):
@@ -131,10 +131,10 @@ def transcribe_command():
             reset_recording()
             return
         print(f"Command: '{text}'")
-        result = find_best_match(text, commands, cutoff=70)
+        result = find_best_match(text, var2act,var_vec, cutoff=70)
         if result:
-            key, action, score = result
-            print(f"Match '{key}' (score: {score:.1f}%)")
+            action, score = result
+            print(f"Match '{action}' (score: {score:.1f}%)")
             try:
                 subprocess.Popen(action, shell=True)
             except Exception as e:
@@ -144,7 +144,7 @@ def transcribe_command():
     except Exception as e:
         print("Transcription error:", e)
     reset_recording()
-
+#adriangh.dina@gmail.com
 #worker-thread care integreaza si uneste toate functiile de transcribe
 def worker():
     global last_speech_time
