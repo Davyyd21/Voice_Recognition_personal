@@ -14,12 +14,12 @@ take_picture,take picture|take a picture|capture photo|capture image|take photo|
 record_video,record video|start recording|start video recording|rec video|recard video|record vid|start rec|vid record|start vid rec|video start|begin recording,"echo ""VIDEO START"""
 read_temperature,read temperature|get temperature|measure temperature|temperature sensor|temp read|read temparature|check temp|check the temp|temp sensor|read temp|temperature check,"echo ""TEMP: 23.5°C"""
 measure_distance,measure distance|get distance|read distance sensor|get sensor distance|mesure distance|ultrasonic measure|distance sensor|dist measure|distance meas|dist read|sensor distance|dist sens,"echo ""DISTANCE: 25cm"""
-shutdown,shutdown|shut down|power off|turn off|system off|turn off system|system shutdown|poweroff|shutdown now|shut system|turn system off|system power off,"echo ""SHUTDOWN"""
-ram_usage,ram usage|memory|ram status|how much ram|ramyu siji|ram use|check ram|ram check|memory usage|ram checkup|check memory|ram read,"echo ""RAM: 60%"""
-cpu_temp,cpu temp|cpu temperature|processor temp|core temp|cpu t|cpu temperatur|core temperature|proc temp|processor temperature|cpu temp check|check cpu temp|core t,"echo ""CPU: 45°C"""
+shutdown,shutdown|shut down|power off|turn off|system off|turn off system|system shutdown|poweroff|shutdown now|shut system|turn system off|system power off,shutdown now
+ram_usage,ram usage|memory|ram status|how much ram|ramyu siji|ram use|check ram|ram check|memory usage|ram checkup|check memory|ram read,free -h
+cpu_temp,cpu temp|cpu temperature|processor temp|core temp|cpu t|cpu temperatur|core temperature|proc temp|processor temperature|cpu temp check|check cpu temp|core t,coolercontrol&
 gpio_status,gpio status|gpio check|pins status|read gpio|g p o|check gpio|gpio read|gpio pin read|pin status|gpio checkup|read pins|gpio monitor,"echo ""GPIO: OK"""
 wifi_scan,wifi scan|scan wifi|check networks|list wifi|wifi networks|scan wlan|find wifi|search wifi|wifi list|network scan|scan wireless|wifi scan networks,"echo ""WIFI SCANNED"""
 connect_wifi,connect to wifi|wifi connect|connect network|join wifi|wifi join|connect wlan|wlan connect|join network|connect wireless|wifi on|connect to wireless,"echo ""WIFI CONNECTED"""
 disconnect_wifi,disconnect wifi|wifi disconnect|leave network|disconnect wlan|disconnect wireless|wifi off|disconnect wifi network|disconnect wireless network,"echo ""WIFI DISCONNECTED"""
 system_update,update system|system update|upgrade system|apt update|apt upgrade|update pi|pi upgrade|raspbian update|upgrade raspi|update os|system upgrade,"echo ""SYSTEM UPDATED"""
-reboot_system,reboot|restart|system reboot|reboot pi|restart system|restart pi|raspi reboot|reboot now|restart now|pi restart|system restart,"echo ""SYSTEM REBOOTED"""
+reboot_system,reboot|restart|system reboot|reboot pi|restart system|restart pi|raspi reboot|reboot now|restart now|pi restart|system restart,reboot now
