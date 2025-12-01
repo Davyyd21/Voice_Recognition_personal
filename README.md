@@ -172,36 +172,6 @@ This allows executing:
 
 ---
 
-# Future Enhancement — Raspberry Pi SSH Integration
-
-A planned extension adds remote execution via SSH:
-
-### Planned Flow
-
-```
-PC Assistant → SSH → Raspberry Pi → Execute Script
-```
-
-### Implementation Outline
-
-* Use `paramiko` or system `ssh`
-* Add SSH config file with hostname, key path, credentials
-* Extend `command_matcher` to include remote commands
-* Build `pi_executor.py` to handle:
-
-  * GPIO control
-  * Sensors
-  * Robotics
-  * System management
-
-### Example
-
-```python
-ssh.exec_command("python3 /home/pi/scripts/led_on.py")
-```
-
----
-
 # File Structure
 
 Suggested repository layout:
