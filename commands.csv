@@ -1,5 +1,5 @@
 command_key,variants,action
-turn_on_led,turn on led|turn on the led|activate led|light up led|turnon led|turn on leed|torn on led|trun on led|activate the light|switch on led|tun on led|trun da led,"echo ""LED ON"""
+turn_on_led,turn on led|turn on the led|activate led|light up led|turnon led|turn on leed|torn on led|trun on led|activate the light|switch on led|tun on led|trun da led,LED ON
 turn_off_led,turn off led|turn off the led|deactivate led|switch off led|turnoff led|turn of led|tur off led|deactivat led|switchof led|turn ooff led|turnof led,"echo ""LED OFF"""
 blink_led,blink led|make led blink|flash led|make the led flash|blinc led|blink the light|led blink|flash the light|blinc the led|make light blink,"echo ""LED BLINK"""
 start_motor,start motor|run motor|motor on|stard motor|strat motor|run the motor|turn on motor|start moter|strt motor|turnon motor,"echo ""MOTOR START"""

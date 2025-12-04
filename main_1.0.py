@@ -11,6 +11,7 @@ from command_matcher import load_commands, find_best_match
 #import os
 import sys
 import torch
+import paho.mqtt.client as mqtt
 
 #variabile globale
 WAKE_WORD = "garmin"
@@ -33,6 +34,7 @@ last_speech_time = time.time()
 command_start_delay = 0.0
 buffer_lock = threading.Lock()
 last_wake_time = 0
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 #beep la wake word
 def play_beep():
@@ -133,8 +135,11 @@ def transcribe_command():
         print(f"Command: '{text}'")
         result = find_best_match(text, var2act,var_vec, cutoff=70)
         if result:
+            client.connect(host="192.168.1.139")
             action, score = result
             print(f"Match '{action}' (score: {score:.1f}%)")
+            device, state = action.split(" ")
+            client.publish(f"gpio/{device}", f"{state}")
             try:
                 subprocess.Popen(action, shell=True)
             except Exception as e:
