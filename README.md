@@ -178,7 +178,7 @@ Now start sending commands to the vocal assistant!
 
 # Security
 
-- This example uses an unauthenticated broker (local network). For production, secure Mosquitto with TLS and authentication.
+This example uses an unauthenticated broker (local network). For production, secure Mosquitto with TLS and authentication.
 
 
 # License
