@@ -7,13 +7,13 @@ import time
 import subprocess
 import json
 import os
-from mqtt_publisher import MQTTPublisher
 from faster_whisper import WhisperModel
 from collections import deque
 from command_matcher import load_commands, find_best_match
 #import os
 import sys
 import torch
+import paho.mqtt.client as mqtt
 
 #variabile globale
 WAKE_WORD = "garmin"
@@ -36,6 +36,7 @@ last_speech_time = time.time()
 command_start_delay = 0.0
 buffer_lock = threading.Lock()
 last_wake_time = 0
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 #beep la wake word
 def play_beep():
@@ -71,12 +72,7 @@ except Exception as e:
     sys.exit(1)
 
 #incarcare comenzi
-var2key, key2act, var_vec = load_commands(COMMANDS_CSV)
-# Display MQTT configuration (useful when the user has a remote Pi)
-MQTT_BROKER = os.environ.get("MQTT_BROKER", "localhost")
-MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
-MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "voice/commands")
-print(f"MQTT broker={MQTT_BROKER} port={MQTT_PORT} topic={MQTT_TOPIC}")
+var2act, var_vec = load_commands(COMMANDS_CSV)
 if not var_vec:
     print("No data loaded. Exiting.")
     sys.exit(1)
@@ -139,23 +135,14 @@ def transcribe_command():
             reset_recording()
             return
         print(f"Command: '{text}'")
-        result = find_best_match(text, var2key, key2act, var_vec, cutoff=70)
+        result = find_best_match(text, var2act, var_vec, cutoff=70)
         if result:
-            command_key, action, score = result
-            print(f"Match '{command_key}' -> '{action}' (score: {score:.1f}%)")
-            # publish via MQTT to Raspberry Pi if configured
-            try:
-                mqtt_host = os.environ.get("MQTT_BROKER", "localhost")
-                mqtt_port = int(os.environ.get("MQTT_PORT", 1883))
-                topic = os.environ.get("MQTT_TOPIC", "voice/commands")
-                publisher = MQTTPublisher(mqtt_host, mqtt_port)
-                payload = json.dumps({"command": command_key, "action": action, "score": score})
-                publisher.publish(topic, payload)
-                # Optionally execute locally if MQTT not reachable or on demand
-                if os.environ.get("EXECUTE_LOCALLY", "0") == "1":
-                    subprocess.Popen(action, shell=True)
-            except Exception as e:
-                print("MQTT publish or local execution error:", e)
+            client.connect(host="raspberry.local")
+            print(f"{result}")
+            action, score = result
+            print(f"Match '{action}' (score: {score:.1f}%)")
+            device, state = action.split(" ")
+            client.publish(f"gpio/{device}", f"{state}")
         else:
             print("No matching command found.")
     except Exception as e:

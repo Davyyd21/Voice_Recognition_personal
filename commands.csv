@@ -1,25 +1,7 @@
 command_key,variants,action
-turn_on_led,turn on led|turn on the led|activate led|light up led|turnon led|turn on leed|torn on led|trun on led|activate the light|switch on led|tun on led|trun da led,"echo ""LED ON"""
-turn_off_led,turn off led|turn off the led|deactivate led|switch off led|turnoff led|turn of led|tur off led|deactivat led|switchof led|turn ooff led|turnof led,"echo ""LED OFF"""
-blink_led,blink led|make led blink|flash led|make the led flash|blinc led|blink the light|led blink|flash the light|blinc the led|make light blink,"echo ""LED BLINK"""
-start_motor,start motor|run motor|motor on|stard motor|strat motor|run the motor|turn on motor|start moter|strt motor|turnon motor,"echo ""MOTOR START"""
-stop_motor,stop motor|halt motor|stop the motor|turn off motor|stop moter|stop motorr|turnoff motor|stopp motor|turn off the motor,"echo ""MOTOR STOP"""
-activate_buzzer,activate buzzer|turn on buzzer|beep buzzer|start buzzer|activate buzzer please|buzer on|activate booser|start booser|actv buzzer|turnon buzzer,"echo ""BUZZER ON"""
-deactivate_buzzer,deactivate buzzer|turn off buzzer|stop buzzer|buzzer off|buzer off|buzzer off please|deact buzzer|turnoff buzzer|stop booser,"echo ""BUZZER OFF"""
-start_fan,start fan|turn on fan|activate fan|run fan|stard fan|turn fan on|fan on|start the fan|fan activate|fan run|fan turn on,"echo ""FAN ON"""
-stop_fan,stop fan|turn off fan|deactivate fan|stop the fan|stop fann|fan off|turn fan off|fan stop|fan deactivate|fan off now,"echo ""FAN OFF"""
-rotate_servo,rotate servo|move servo|turn servo|rotate the servo|rotate servomotor|rotade servo|roteit servo|servo rotate|servo turn|move the servo|servo mov,"echo ""SERVO ROTATE"""
-set_servo_angle,set servo angle|move servo to angle|servo angle|set the servo|set angle servo|servo angol|servo ang|angle servo|set servo ang|move servo ang,"echo ""SERVO ANGLE SET"""
-take_picture,take picture|take a picture|capture photo|capture image|take photo|take pikchure|pic photo|camera snap|take foto|tak picture|camera pic|snap photo,"echo ""PHOTO TAKEN"""
-record_video,record video|start recording|start video recording|rec video|recard video|record vid|start rec|vid record|start vid rec|video start|begin recording,"echo ""VIDEO START"""
-read_temperature,read temperature|get temperature|measure temperature|temperature sensor|temp read|read temparature|check temp|check the temp|temp sensor|read temp|temperature check,"echo ""TEMP: 23.5°C"""
-measure_distance,measure distance|get distance|read distance sensor|get sensor distance|mesure distance|ultrasonic measure|distance sensor|dist measure|distance meas|dist read|sensor distance|dist sens,"echo ""DISTANCE: 25cm"""
-shutdown,shutdown|shut down|power off|turn off|system off|turn off system|system shutdown|poweroff|shutdown now|shut system|turn system off|system power off,shutdown now
-ram_usage,ram usage|memory|ram status|how much ram|ramyu siji|ram use|check ram|ram check|memory usage|ram checkup|check memory|ram read,free -h
-cpu_temp,cpu temp|cpu temperature|processor temp|core temp|cpu t|cpu temperatur|core temperature|proc temp|processor temperature|cpu temp check|check cpu temp|core t,coolercontrol&
-gpio_status,gpio status|gpio check|pins status|read gpio|g p o|check gpio|gpio read|gpio pin read|pin status|gpio checkup|read pins|gpio monitor,"echo ""GPIO: OK"""
-wifi_scan,wifi scan|scan wifi|check networks|list wifi|wifi networks|scan wlan|find wifi|search wifi|wifi list|network scan|scan wireless|wifi scan networks,"echo ""WIFI SCANNED"""
-connect_wifi,connect to wifi|wifi connect|connect network|join wifi|wifi join|connect wlan|wlan connect|join network|connect wireless|wifi on|connect to wireless,"echo ""WIFI CONNECTED"""
-disconnect_wifi,disconnect wifi|wifi disconnect|leave network|disconnect wlan|disconnect wireless|wifi off|disconnect wifi network|disconnect wireless network,"echo ""WIFI DISCONNECTED"""
-system_update,update system|system update|upgrade system|apt update|apt upgrade|update pi|pi upgrade|raspbian update|upgrade raspi|update os|system upgrade,"echo ""SYSTEM UPDATED"""
-reboot_system,reboot|restart|system reboot|reboot pi|restart system|restart pi|raspi reboot|reboot now|restart now|pi restart|system restart,reboot now
+turn_on_led,turn on led|turn on the led|activate led|light up led|turnon led|turn on leed|torn on led|trun on led|activate the light|switch on led|tun on led|trun da led,LED ON
+turn_off_led,turn off led|turn off the led|turn off lane|turn off lead|deactivate led|switch off led|turnoff led|turn of led|tur off led|deactivat led|switchof led|turn ooff led|turnof led,LED OFF
+show_temperature,show temperature|show the temperature|show da temperature|temperature on|show it in baratute,TEMPERATURE ON
+close_temperature,temperature off,TEMPERATURE OFF
+open_door,open da door|open door|open|open dawn,MOTOR ON
+close_door,close the door| close da door,MOTOR OFF
